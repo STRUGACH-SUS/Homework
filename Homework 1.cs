@@ -1,6 +1,7 @@
-﻿InputNumberInAnotherSystem();
+// Перевод числа пользователя из одной системы счисления в другую
+InputNumberInAnotherSystem();
 
-static string InputNumberInAnotherSystem()
+static string InputNumberInAnotherSystem()// Получаем данные от пользователя
 {
     Console.Write("Please enter number: ");
     string result = Console.ReadLine();
@@ -12,7 +13,7 @@ static string InputNumberInAnotherSystem()
     return result;
 }
 
-static string CheckValidInputNumber(string number,int firstSystem,int endSystem)
+static string CheckValidInputNumber(string number,int firstSystem,int endSystem)// Проверка полученных данных
 {
     string testOfCharString = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-";
     testOfCharString = testOfCharString.Substring(0,firstSystem)+'-';
@@ -37,7 +38,7 @@ static string CheckValidInputNumber(string number,int firstSystem,int endSystem)
     return number;
 }
 
-static string ChangeSystemOfNumber(string number,int firstSystem,int endSystem)
+static string ChangeSystemOfNumber(string number,int firstSystem,int endSystem)// Перевод из одной системы счисления в другую числа пользователя
 {
     bool negative = false;
     string testOfCharString = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -87,4 +88,5 @@ static string ChangeSystemOfNumber(string number,int firstSystem,int endSystem)
     Console.WriteLine("Your number in " + endSystem +" system: " + result);
     
     return result;
+
 }
