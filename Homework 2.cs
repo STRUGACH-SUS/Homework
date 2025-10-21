@@ -58,11 +58,10 @@ static void CheckValidInputNumber(string number,int firstSystem,int endSystem) /
 }
 static int ChangeSystemOfNumberInTenSystem(string number,int firstSystem) // Перевод из одной системы счисления в другую числа пользователя
 {
+    
     string testOfCharString="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    if (number[0]=='-')
-    {
-        number=number.Substring(1);
-    }
+    bool negative=number[0]=='-';
+    number=negative?number.Substring(1):number;
     int counter=0;
     int numberInTenSystem=0;
     for (int i=number.Length-1;i>=0;i--)
@@ -70,14 +69,15 @@ static int ChangeSystemOfNumberInTenSystem(string number,int firstSystem) // П�
         numberInTenSystem=numberInTenSystem+(testOfCharString.IndexOf(number[i]))*Convert.ToInt32(Math.Pow(firstSystem,counter));
         counter++;
     }
+    numberInTenSystem=negative?-1*numberInTenSystem:numberInTenSystem;
     return numberInTenSystem;
 }
 static string ChangeSystemOfNumbers(int sumNumbersInTenSystem,int endSystem)// Перевод из одной системы счисления в другую числа пользователя
 {
     string result="";
-    bool negative=false;
     string testOfCharString="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    sumNumbersInTenSystem=(sumNumbersInTenSystem<0)?-sumNumbersInTenSystem:sumNumbersInTenSystem;
+    bool negative=(sumNumbersInTenSystem<0);
+    sumNumbersInTenSystem=negative?-1*sumNumbersInTenSystem:sumNumbersInTenSystem;
     while (true)
     {
         result=testOfCharString[sumNumbersInTenSystem%endSystem]+result;
