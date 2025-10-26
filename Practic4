@@ -1,0 +1,235 @@
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+
+namespace CsvToClassGenerator
+{
+    // Интерфейсы для разделения ответственности
+    public interface ICsvParser
+    {
+        List<PropertyDefinition> ParseCsv(string[] lines);
+    }
+
+    public interface IClassGenerator
+    {
+        string GenerateClass(string className, List<PropertyDefinition> properties);
+    }
+
+    public interface IFileService
+    {
+        string[] ReadAllLines(string path);
+        void WriteAllText(string path, string content);
+        bool FileExists(string path);
+        string GetFileNameWithoutExtension(string path);
+        string CombinePaths(string path1, string path2);
+    }
+
+    // Модель данных
+    public class PropertyDefinition
+    {
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public string Access { get; set; }
+    }
+
+    // Реализации интерфейсов
+    public class CsvParser : ICsvParser
+    {
+        public List<PropertyDefinition> ParseCsv(string[] lines)
+        {
+            return lines
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .Select(line => line.Split(';'))
+                .Where(parts => parts.Length >= 3)
+                .Select(parts => new PropertyDefinition
+                {
+                    Name = parts[0].Trim(),
+                    Type = parts[1].Trim(),
+                    Access = parts[2].Trim().ToUpper()
+                })
+                .Where(prop => !string.IsNullOrEmpty(prop.Name) && !string.IsNullOrEmpty(prop.Type))
+                .ToList();
+        }
+    }
+
+    public class ClassGenerator : IClassGenerator
+    {
+        public string GenerateClass(string className, List<PropertyDefinition> properties)
+        {
+            if (!properties.Any())
+            {
+                throw new InvalidOperationException("Не удалось извлечь свойства из CSV файла.");
+            }
+
+            StringBuilder sb = new StringBuilder();
+
+            // Заголовок класса
+            sb.AppendLine("using System;");
+            sb.AppendLine();
+            sb.AppendLine($"public class {className}");
+            sb.AppendLine("{");
+
+            // Свойства
+            foreach (var prop in properties)
+            {
+                string mappedType = MapType(prop.Type);
+                string accessModifier = "public";
+                string readonlyKeyword = prop.Access == "RO" ? "readonly " : "";
+                
+                sb.AppendLine($"    {accessModifier} {readonlyKeyword}{mappedType} {ToPascalCase(prop.Name)} {{ get; {GetSetAccessor(prop.Access)} }}");
+            }
+
+            sb.AppendLine();
+
+            // Конструктор
+            sb.AppendLine($"    public {className}({GenerateConstructorParameters(properties)})");
+            sb.AppendLine("    {");
+
+            // Инициализация свойств в конструкторе
+            foreach (var prop in properties)
+            {
+                string parameterName = ToCamelCase(prop.Name);
+                sb.AppendLine($"        {ToPascalCase(prop.Name)} = {parameterName};");
+            }
+
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+        private string MapType(string type)
+        {
+            return type.ToLower() switch
+            {
+                "int" => "int",
+                "real" => "double",
+                "bool" => "bool",
+                "string" => "string",
+                _ => throw new ArgumentException($"Неизвестный тип: {type}")
+            };
+        }
+
+        private string GetSetAccessor(string access)
+        {
+            return access.ToUpper() switch
+            {
+                "RO" => "private set; }",
+                "RW" => "set; }",
+                _ => "set; }"
+            };
+        }
+
+
+private string GenerateConstructorParameters(List<PropertyDefinition> properties)
+        {
+            var parameters = properties.Select(prop => 
+                $"{MapType(prop.Type)} {ToCamelCase(prop.Name)}");
+            
+            return string.Join(", ", parameters);
+        }
+
+        private string ToPascalCase(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            string cleaned = input.Replace(" ", "");
+            return char.ToUpper(cleaned[0]) + cleaned.Substring(1);
+        }
+
+        private string ToCamelCase(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            string cleaned = input.Replace(" ", "");
+            return char.ToLower(cleaned[0]) + cleaned.Substring(1);
+        }
+    }
+
+    public class FileService : IFileService
+    {
+        public string[] ReadAllLines(string path) => File.ReadAllLines(path);
+        
+        public void WriteAllText(string path, string content) => File.WriteAllText(path, content, Encoding.UTF8);
+        
+        public bool FileExists(string path) => File.Exists(path);
+        
+        public string GetFileNameWithoutExtension(string path) => Path.GetFileNameWithoutExtension(path);
+        
+        public string CombinePaths(string path1, string path2) => Path.Combine(path1, path2);
+    }
+
+    // Основной сервис, координирующий работу
+    public class CsvToClassService
+    {
+        private readonly ICsvParser _csvParser;
+        private readonly IClassGenerator _classGenerator;
+        private readonly IFileService _fileService;
+
+        public CsvToClassService(ICsvParser csvParser, IClassGenerator classGenerator, IFileService fileService)
+        {
+            _csvParser = csvParser;
+            _classGenerator = classGenerator;
+            _fileService = fileService;
+        }
+
+        public void GenerateClassFromCsv(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath) || !_fileService.FileExists(filePath))
+            {
+                throw new FileNotFoundException("Файл не существует или путь пустой.");
+            }
+
+            string className = _fileService.GetFileNameWithoutExtension(filePath);
+            string outputFilePath = _fileService.CombinePaths(
+                Path.GetDirectoryName(filePath), 
+                $"{className}.cs"
+            );
+
+            string[] lines = _fileService.ReadAllLines(filePath);
+            
+            if (lines.Length == 0)
+            {
+                throw new InvalidDataException("Файл пустой.");
+            }
+
+            var properties = _csvParser.ParseCsv(lines);
+            string generatedClass = _classGenerator.GenerateClass(className, properties);
+            
+            _fileService.WriteAllText(outputFilePath, generatedClass);
+
+            Console.WriteLine($"Класс успешно сгенерирован: {outputFilePath}");
+        }
+    }
+
+    // Главный класс программы
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Композиция зависимостей
+            IFileService fileService = new FileService();
+            ICsvParser csvParser = new CsvParser();
+            IClassGenerator classGenerator = new ClassGenerator();
+            
+            var service = new CsvToClassService(csvParser, classGenerator, fileService);
+
+            try
+            {
+                Console.Write("Введите путь до файла .csv: ");
+                string filePath = Console.ReadLine();
+
+                service.GenerateClassFromCsv(filePath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Произошла ошибка: {ex.Message}");
+            }
+        }
+    }
+}
