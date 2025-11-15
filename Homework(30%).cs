@@ -79,7 +79,7 @@ namespace Homework3
                 if (mathematicalExpression[i] == "*")
                 {
                     mathematicalExpression[i] = MultiOfTwoNumbers(mathematicalExpression[i-1],mathematicalExpression[i+1],firstNumeralSystem,testOfCharString);
-                    mathematicalExpression.RemoveAt(i-1);
+                    mathematicalExpression.RemoveAt(i-1);//тут ошибки вылетают
                     mathematicalExpression.RemoveAt(i+1);
                 }
                 
@@ -103,10 +103,17 @@ namespace Homework3
         private static string SumOfTwoNumbers(string firstNumber, string secondNumber, int firstNumeralSystem, string testOfCharString)//В этом методе надо добавить чтобы у меньшего по длине числа добавлялись спереди нули
         {
            
-            string transfer="";
-            int maxLength=(firstNumber.Length>secondNumber.Length)?firstNumber.Length:secondNumber.Length;//поидее нахуй не нужно если дополняем до нулей
-            string result = string.Create(maxLength, '0', (c, b) => { for (int i = 0; i < c.Length; i++) c[i] = '0'; });//Тут не результат строку надо брать а добавлять нули к числам
-            for (int i = maxLength - 1; i >= 0; i--)
+            string result="",transfer="";
+            string substring = string.Create(Math.Abs(firstNumber.Length-secondNumber.Length), '0', (c, b) => { for (int i = 0; i < c.Length; i++) c[i] = '0'; });
+            if (firstNumber.Length > secondNumber.Length)
+            {
+                secondNumber = substring +  secondNumber;
+            }
+            else
+            {
+                firstNumber = substring +  firstNumber;
+            }
+            for (int i = firstNumber.Length - 1; i >= 0; i--)
             {   
                 result = testOfCharString[((testOfCharString.IndexOf(firstNumber[i]) + testOfCharString.IndexOf(secondNumber[i])+testOfCharString.IndexOf(transfer))%firstNumeralSystem)] + result;
                 transfer = testOfCharString[((testOfCharString.IndexOf(firstNumber[i]) + testOfCharString.IndexOf(secondNumber[i])+testOfCharString.IndexOf(transfer))/firstNumeralSystem)].ToString();
